@@ -1,6 +1,10 @@
 ﻿using Dapper;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DbTableSync
 {
@@ -115,14 +119,14 @@ namespace DbTableSync
             {
                 using (var bc = new SqlBulkCopy(destinationConnectionString, SqlBulkCopyOptions.CheckConstraints & SqlBulkCopyOptions.FireTriggers))
                 {
-                    var dt = ConvertToDataTable(sourceData);
+                    var dt = sourceData.ConvertToDataTable();
 
                     bc.DestinationTableName = tableName;
 
                     await bc.WriteToServerAsync(dt);
                 }
 
-                return sourceData.Count();
+                return sourceData.Count;
             }
 
             return 0;
@@ -139,75 +143,17 @@ namespace DbTableSync
             {
                 using (var bc = new SqlBulkCopy(destinationConnectionString, SqlBulkCopyOptions.CheckConstraints & SqlBulkCopyOptions.FireTriggers))
                 {
-                    var dt = ConvertToDataTable(sourceData);
+                    var dt = sourceData.ConvertToDataTable();
 
                     bc.DestinationTableName = tableName;
 
                     await bc.WriteToServerAsync(dt);
                 }
 
-                return sourceData.Count();
+                return sourceData.Count;
             }
 
             return 0;
-        }
-
-        private DataTable ConvertToDataTable<T>(List<T> items)
-        {
-            var table = new DataTable();
-
-            var propertyNames = items.GetPropertyNames();
-
-            foreach (var name in propertyNames)
-            {
-                table.Columns.Add(name);
-            }
-
-            foreach (var item in items)
-            {
-                var data = item as IDictionary<string, object>;
-
-                var row = table.NewRow();
-                foreach (var name in propertyNames)
-                {
-                    if (data?.ContainsKey(name) == true)
-                    {
-                        row[name] = data[name];
-                    }
-                }
-                table.Rows.Add(row);
-            }
-
-            return table;
-        }
-
-        private DataTable ConvertToDataTable(List<dynamic> items)
-        {
-            var table = new DataTable();
-
-            var propertyNames = items.GetPropertyNames();
-
-            foreach (var name in propertyNames)
-            {
-                table.Columns.Add(name);
-            }
-
-            foreach (var item in items)
-            {
-                var data = item as IDictionary<string, object>;
-
-                var row = table.NewRow();
-                foreach (var name in propertyNames)
-                {
-                    if (data?.ContainsKey(name) == true)
-                    {
-                        row[name] = data[name];
-                    }
-                }
-                table.Rows.Add(row);
-            }
-
-            return table;
         }
     }
 
@@ -227,10 +173,69 @@ namespace DbTableSync
             var lookup = firstRecord as IDictionary<string, object>;
             return lookup?.Keys.ToList() ?? Enumerable.Empty<string>().ToList();
         }
+
         public static List<string> GetPropertyNames<T>(this List<T> _)
         {
             var propertyNames = typeof(T).GetProperties().Select(p => p.Name).ToList();
             return propertyNames;
+        }
+
+        public static DataTable ConvertToDataTable<T>(this List<T> items)
+        {
+            var table = new DataTable();
+
+            var propertyNames = items.GetPropertyNames();
+
+            foreach (var name in propertyNames)
+            {
+                table.Columns.Add(name);
+            }
+
+            foreach (var item in items)
+            {
+                var data = item as IDictionary<string, object>;
+
+                var row = table.NewRow();
+                foreach (var name in propertyNames)
+                {
+                    if (data?.ContainsKey(name) == true)
+                    {
+                        row[name] = data[name];
+                    }
+                }
+                table.Rows.Add(row);
+            }
+
+            return table;
+        }
+
+        public static DataTable ConvertToDataTable(this List<dynamic> items)
+        {
+            var table = new DataTable();
+
+            var propertyNames = items.GetPropertyNames();
+
+            foreach (var name in propertyNames)
+            {
+                table.Columns.Add(name);
+            }
+
+            foreach (var item in items)
+            {
+                var data = item as IDictionary<string, object>;
+
+                var row = table.NewRow();
+                foreach (var name in propertyNames)
+                {
+                    if (data?.ContainsKey(name) == true)
+                    {
+                        row[name] = data[name];
+                    }
+                }
+                table.Rows.Add(row);
+            }
+
+            return table;
         }
     }
 }
